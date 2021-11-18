@@ -15,8 +15,8 @@ html, body {
     position: relative;
     top: 50%;
     left: 50%;
-    width: 360px;
-    height: 480px;
+    width: 320px;
+    height: 580px;
     transform: translate(-50%, -50%);
     background: #000;
     color: #fff;
@@ -39,27 +39,44 @@ html, body {
     flex-wrap: nowrap;
     justify-content: space-between;
     align-items: stretch;
+    overflow: hidden;
 }
 
 .albumArt {
-
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url(./img/0.png) no-repeat center;
+    background-size: cover;
+    /*width: 100%;*/
+    /*height: 100%;*/
+    border-radius: 8px;
 }
 
 .albumArt.cover {
+    z-index: -1;
+    filter: blur(8px) contrast(1.1) brightness(0.75);
+    background-size: 105%;
+}
 
+.music.playing .albumArt {
+    transform: scale(1.1);
 }
 
 .song {
     flex: 1 1 60%;
+    position: relative;
 }
 
 .buttons {
     flex: 1 1 40%;
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
     justify-content: space-between;
     align-items: stretch;
-    align-content: stretch;
-    justify-items: stretch;
 }
 
 .navigator {
@@ -75,12 +92,19 @@ html, body {
 }
 
 .btn {
+    font-size: 0;
     width: 32px;
     height: 32px;
     background: no-repeat center;
-    background-size: cover;
-    filter: invert(1);
-    color: transparent;
+    background-size: 100% 100%;
+    filter: invert(1) drop-shadow(0 0 1px);
+    /* color: transparent; */
+    overflow: hidden;
+    user-select: none;
+}
+
+.btn:hover {
+    background-color: #999;
 }
 
 .repeat {
@@ -111,18 +135,81 @@ html, body {
     background-image: url("./icons/play_arrow_black_48dp.svg");
 }
 
+.pause {
+    background-image: url("./icons/pause_black_48dp.svg");
+}
+
 .next {
     background-image: url("./icons/skip_next_black_48dp.svg");
 }
 
-.list{
+.list {
     background-image: url("./icons/grid_view_black_48dp.svg");
 }
 
-.search{
+.search {
     background-image: url("./icons/search_black_48dp.svg");
 }
 
-.menu{
+.menu {
     background-image: url("./icons/menu_black_48dp.svg");
+}
+
+.favorite {
+    background-image: url("./icons/favorite_black_48dp.svg");
+}
+
+.favorite.on {
+    background-image: url("./icons/favorite_border_black_48dp.svg");
+}
+
+.more {
+    background-image: url("./icons/more_vert_black_48dp.svg");
+    right: 0;
+}
+
+.more, .favorite {
+    position: absolute;
+    bottom: 0;
+    margin: 12px 8px;
+}
+
+.play, .next, .previus {
+    border-radius: 50%;
+    background-color: #fff;
+    margin: 4px;
+    width: 42px;
+    height: 42px;
+    color: transparent;
+}
+
+.play {
+    width: 64px;
+    height: 64px;
+}
+
+.trackLabels {
+    font-size: 22px;
+    position: absolute;
+    bottom: 0;
+    margin: 56px 12px;
+}
+
+
+.otherButtons, .controlButtons {
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.controlButtons {
+    justify-content: center;
+    flex: 1 1;
+}
+
+.otherButtons > div {
+    margin: 8px;
+    border-radius: 8px;
 }
