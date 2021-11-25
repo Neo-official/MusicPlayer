@@ -3,7 +3,7 @@
     font-family: 'Material Icons Round';
     font-style: normal;
     font-weight: 400;
-    src: url('../fonts/LDItaoyNOAY6Uewc665JcIzCKsKc_M9flwmP.woff2') format('woff2');
+    src: url('../fonts/material-icons-Round.woff2') format('woff2');
 }
 
 .material-icons-round {
@@ -21,3 +21,4 @@
     -webkit-font-feature-settings: 'liga';
     -webkit-font-smoothing: antialiased;
 }
+
