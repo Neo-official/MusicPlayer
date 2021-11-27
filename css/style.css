@@ -93,7 +93,7 @@ html, body {
 }
 
 .btn {
-    font-family: 'Material Icons Round';
+    font-family: 'Material Icons Round', sans-serif;
     font-size: 32px;
     width: 36px;
     height: 36px;
@@ -109,10 +109,10 @@ html, body {
 }
 
 .btn:hover {
-    box-shadow: inset 0 0 0px 64px #ffffff22;
+    box-shadow: inset 0 0 0 64px #ffffff22;
 }
 
-.on{
+.on {
 
 }
 
@@ -121,9 +121,8 @@ html, body {
 }
 
 .more, .favorite {
-    position: absolute;
-    bottom: 0;
-    margin: 12px 8px;
+    display: none;
+    margin-top: 8px;
 }
 
 .play, .next, .previus {
@@ -143,10 +142,25 @@ html, body {
 .trackLabels {
     font-size: 22px;
     position: absolute;
+    left: 0;
+    right: 0;
     bottom: 0;
-    margin: 56px 12px;
+    margin: 8px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    align-items: flex-start;
 }
 
+.trackLabels > div {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
 
 .otherButtons, .controlButtons {
     display: flex;
@@ -157,11 +171,38 @@ html, body {
 }
 
 .controlButtons {
+    flex-direction: column;
+    flex: 1 1;
+}
+
+.controlButtons > div {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     justify-content: center;
+    align-items: center;
     flex: 1 1;
 }
 
 .otherButtons > div {
     margin: 8px;
     border-radius: 8px;
+}
+
+.controlButtons .progress {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: stretch;
+    width: 100%;
+}
+
+.controlButtons .time{
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
 }
