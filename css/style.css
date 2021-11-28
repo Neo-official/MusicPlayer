@@ -199,10 +199,29 @@ html, body {
     width: 100%;
 }
 
-.controlButtons .time{
+.controlButtons .time {
     display: flex;
     flex-wrap: nowrap;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+}
+
+.progress > * {
+    padding: 2px 12px;
+}
+
+.seekbar {
+    width: 100%;
+    appearance: none;
+    background: #11111199;
+}
+
+.seekbar::-webkit-slider-thumb {
+    background: #ffffffd4;
+    width: 12px;
+    height: 8px;
+    border-radius: 4px;
+    appearance: none;
+    margin: 2px 2px 2px -2px;
 }
