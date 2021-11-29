@@ -182,7 +182,7 @@ class MusicPlayer {
 		this.shuffleMode = !this.shuffleMode;
 
 		if (this.shuffleMode)
-			shuffle(this.queue);
+			shuffle(this.queue, true);
 		else
 			this.queue.sort((a, b) => b - a);
 
@@ -223,7 +223,7 @@ function shuffle (array, bool) {
 	let rnd,
 	    length = array.length;
 	while (length > 1) {
-		rnd = (Math.random() * length) | 0;
+		rnd = int(Math.random() * length);
 
 		swap(array[--length], array[rnd]);
 	}
@@ -233,5 +233,4 @@ function shuffle (array, bool) {
 
 function swap (a, b) {
 	[a, b] = [b, a];
-
 }
