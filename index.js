@@ -10,15 +10,27 @@ function setup () {
 window.onload = () => setup();
 
 function initializeDragAndDrop () {
-	window.ondragover = event => {
+	window.ondragover         = event => {
 		event.preventDefault();
+		$('.dropzone').classList.add('show');
+
 	};
-	window.ondrag     = event => {
+	window.ondrag             = event => {
 		console.log(event);
 	};
-	window.ondrop     = event => {
-		// console.log(event);
+	$('#input-file').onchange = window.ondrop = event => {
+		console.log(event);
 		event.preventDefault();
+		if (!event.dataTransfer) {
+			let {files} = event.target;
+			for (let i = 0; i < files.length; i++) {
+				MusicPlayer.addFile(files[i]);
+				// console.log('... file[' + i + '].name = ' + files[i].name);
+			}
+
+			return true;
+		}
+		$('.dropzone').classList.remove('show');
 		let {items, files} = event.dataTransfer;
 		if (items) {
 			// Use DataTransferItemList interface to access the file(s)
@@ -74,6 +86,7 @@ function checkForInstallApp () {
 class MusicPlayer {
 	static audio            = new Audio("");
 	static queue            = [];
+	static files            = [];
 	static currentSongIndex = 0;
 
 	static initialize () {
@@ -85,7 +98,9 @@ class MusicPlayer {
 
 		$('.next').onclick    = () => this.next();
 		$('.play').onclick    = () => this.togglePlayPause();
-		$('.pervius').onclick = () => this.pervius();
+		$('.previus').onclick = () => this.pervius();
+		$('.repeat').onclick  = () => this.repeat();
+		$('.shuffle').onclick = () => this.shuffle();
 
 		let seekBar = $('#seekbar');
 		seekBar.min = 0;
@@ -94,9 +109,12 @@ class MusicPlayer {
 
 	static addFile (file) {
 		file.src = URL.createObjectURL(file);
+
 		if (this.songs === 0)
 			this.audio.src = file.src;
-		this.queue.push(file);
+
+		this.files.push(file);
+		this.queue.push(this.files.length - 1);
 	}
 
 	static isChange () {
@@ -119,7 +137,7 @@ class MusicPlayer {
 	}
 
 	static get currentSong () {
-		return this.queue[this.currentSongIndex];
+		return this.files[this.queue[this.currentSongIndex]];
 	}
 
 	static get paused () {
@@ -153,6 +171,24 @@ class MusicPlayer {
 		else this.pause();
 	}
 
+	static repeat () {
+		this.repeatMode = !this.repeatMode;
+
+		this.audio.loop        = this.repeatMode;
+		$('.repeat').innerHTML = this.repeatMode ? 'repeat_one' : 'repeat';
+	}
+
+	static shuffle () {
+		this.shuffleMode = !this.shuffleMode;
+
+		if (this.shuffleMode)
+			shuffle(this.queue);
+		else
+			this.queue.sort((a, b) => b - a);
+
+		$('.shuffle').innerHTML = this.shuffleMode ? 'shuffle_on' : 'shuffle';
+	}
+
 	static update () {
 		let {audio, currentSong} = this;
 
@@ -164,7 +200,7 @@ class MusicPlayer {
 
 		$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100;
 
-		$('.title').innerHTML = currentSong.name;
+		$('.title').innerHTML  = currentSong.name;
 		$('.artist').innerHTML = '';
 	}
 
@@ -179,4 +215,23 @@ function timeToClock (time = 0) {
 	let sec = int(time % 60);
 	let min = int(time / 60);
 	return (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function shuffle (array, bool) {
+	array = bool ? array : array.slice();
+
+	let rnd,
+	    length = array.length;
+	while (length > 1) {
+		rnd = (Math.random() * length) | 0;
+
+		swap(array[--length], array[rnd]);
+	}
+
+	return array;
+}
+
+function swap (a, b) {
+	[a, b] = [b, a];
+
 }
