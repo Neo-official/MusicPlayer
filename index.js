@@ -88,23 +88,34 @@ class MusicPlayer {
 	static queue            = [];
 	static files            = [];
 	static currentSongIndex = 0;
+	static isSeeking        = false;
 
 	static initialize () {
-		this.audio.src      = '';
-		this.audio.autoplay = false;
-		this.audio.pause();
-		this.audio.ontimeupdate = () => this.update();
+		let {audio} = this,
+		play = $('.play');
+
+		audio.src      = '';
+		audio.autoplay = false;
+		audio.pause();
+		audio.ontimeupdate = () => this.update();
+		audio.onplay       = () => play.innerHTML = 'pause';
+		audio.onpause       = () => play.innerHTML = 'play_arrow';
 
 
 		$('.next').onclick    = () => this.next();
-		$('.play').onclick    = () => this.togglePlayPause();
+		play.onclick    = () => this.togglePlayPause();
 		$('.previus').onclick = () => this.pervius();
 		$('.repeat').onclick  = () => this.repeat();
 		$('.shuffle').onclick = () => this.shuffle();
 
-		let seekBar = $('#seekbar');
-		seekBar.min = 0;
-		seekBar.max = 100;
+		let seekBar         = $('#seekbar');
+		seekBar.min         = 0;
+		seekBar.max         = 100;
+		let mouseIsDown     = false;
+		seekBar.onmousedown = () => mouseIsDown = true;
+		seekBar.onmouseup   = () => mouseIsDown = false;
+		// seekBar.onchange = () => this.updateAudioTime();
+		seekBar.onmousemove = () => (this.isSeeking = mouseIsDown) && this.updateAudioTime();
 	}
 
 	static addFile (file) {
@@ -150,12 +161,10 @@ class MusicPlayer {
 	}
 
 	static play () {
-		$('.play').innerHTML = 'pause';
 		return this.audio.play();
 	}
 
 	static pause () {
-		$('.play').innerHTML = 'play_arrow';
 		return this.audio.pause();
 	}
 
@@ -189,15 +198,19 @@ class MusicPlayer {
 		$('.shuffle').innerHTML = this.shuffleMode ? 'shuffle_on' : 'shuffle';
 	}
 
+	static updateAudioTime () {
+		this.audio.currentTime = $('#seekbar').value / 100 * this.audio.duration;
+	}
+
 	static update () {
-		let {audio, currentSong} = this;
+		let {audio, currentSong, isSeeking} = this;
 
 		let curtime = timeToClock(audio.currentTime);
 		let durtime = timeToClock(audio.duration);
 
 		$('.curtime').innerHTML = curtime;
 		$('.durtime').innerHTML = durtime;
-
+		if (isSeeking) return;
 		$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100;
 
 		$('.title').innerHTML  = currentSong.name;
