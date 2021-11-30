@@ -10,45 +10,38 @@ function setup () {
 window.onload = () => setup();
 
 function initializeDragAndDrop () {
-	window.ondragover         = event => {
+	let inputFile              = document.getElementById('input-file');
+	window.ondragover          = event => {
 		event.preventDefault();
 		$('.dropzone').classList.add('show');
 
 	};
-	window.ondrag             = event => {
-		console.log(event);
-	};
-	$('#input-file').onchange = window.ondrop = event => {
-		console.log(event);
+	$('.dropzone').ondragleave = event => {
 		event.preventDefault();
-		if (!event.dataTransfer) {
-			let {files} = event.target;
-			for (let i = 0; i < files.length; i++) {
-				MusicPlayer.addFile(files[i]);
-				// console.log('... file[' + i + '].name = ' + files[i].name);
-			}
-
-			return true;
-		}
+		event.stopPropagation();
 		$('.dropzone').classList.remove('show');
-		let {items, files} = event.dataTransfer;
-		if (items) {
-			// Use DataTransferItemList interface to access the file(s)
-			for (let i = 0; i < items.length; i++) {
-				// If dropped items aren't files, reject them
-				if (items[i].kind === 'file') {
-					MusicPlayer.addFile(items[i].getAsFile());
-					// var file = items[i].getAsFile();
-					// console.log('... file[' + i + '].name = ' + file.name);
-				}
-			}
-		} else {
-			// Use DataTransfer interface to access the file(s)
-			for (let i = 0; i < files.length; i++) {
-				MusicPlayer.addFile(files[i]);
-				// console.log('... file[' + i + '].name = ' + files[i].name);
-			}
+	};
+	inputFile.onchange         = event => {
+		// console.log(event);
+		event.preventDefault();
+		$('#menulist').classList.remove('show');
+		let {files} = event.target;
+		for (const file of files) {
+			MusicPlayer.addFile(file);
+			// console.log('... filename);
 		}
+
+	};
+	window.ondrop              = event => {
+		console.log(event);
+		let {files} = event.dataTransfer;
+		$('.dropzone').classList.remove('show');
+
+		// Use DataTransfer interface to access the file(s)
+		inputFile.files = files;
+
+		event.preventDefault();
+
 	};
 }
 
@@ -83,6 +76,32 @@ function checkForInstallApp () {
 	});
 }
 
+function int (number = 0) {
+	return Math.floor(number) || 0;
+}
+
+function timeToClock (time = 0) {
+	time    = int(time);
+	let sec = int(time % 60);
+	let min = int(time / 60);
+	return min + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function shuffle (array, bool) {
+	array = bool ? array : array.slice();
+
+	let rnd,
+	    i = array.length;
+	while (1 < i--) {
+		rnd = int(Math.random() * i);
+
+		// swap a,b = b,a
+		[array[i], array[rnd]] = [array[rnd], array[i]];
+	}
+
+	return array;
+}
+
 class MusicPlayer {
 	static audio            = new Audio("");
 	static queue            = [];
@@ -97,19 +116,30 @@ class MusicPlayer {
 		audio.src      = '';
 		audio.autoplay = false;
 		audio.pause();
+		audio.volume       = 0.5;
 		audio.ontimeupdate = () => this.update();
-		audio.onplay       = () => play.innerHTML = 'pause';
-		audio.onpause      = () => play.innerHTML = 'play_arrow';
+		audio.onplay       = () => {
+			$('.music').classList.add('playing');
+			play.innerHTML = 'pause';
+		};
+		audio.onpause      = () => {
+			$('.music').classList.remove('playing');
+			play.innerHTML = 'play_arrow';
+		};
+
+		audio.onended = () => {
+			this.next();
+		};
 
 
-		$('.next').onclick       = () => this.next();
-		play.onclick             = () => this.togglePlayPause();
-		$('.previus').onclick    = () => this.pervius();
-		$('.repeat').onclick     = () => this.repeat();
-		$('.shuffle').onclick    = () => this.shuffle();
-		let menuList             = $('#menulist');
-		$('#menu').onclick       = () => menuList.classList.toggle('show');
-		$('#menulist *').onclick = () => menuList.classList.toggle('show');
+		$('.next').onclick    = () => this.next();
+		play.onclick          = () => this.togglePlayPause();
+		$('.previus').onclick = () => this.pervius();
+		$('.repeat').onclick  = () => this.repeat();
+		$('.shuffle').onclick = () => this.shuffle();
+		let menuList          = $('#menulist');
+		$('#menu').onclick    = () => menuList.classList.toggle('show');
+
 
 		let seekBar         = $('#seekbar');
 		seekBar.min         = 0;
@@ -124,23 +154,54 @@ class MusicPlayer {
 	static addFile (file) {
 		file.src = URL.createObjectURL(file);
 
-		if (this.songs === 0)
+		//if list is empty then ready audio to play
+		if (this.isListEmpty())
 			this.audio.src = file.src;
 
 		this.files.push(file);
 		this.queue.push(this.files.length - 1);
 	}
 
+	static isListEmpty () {
+		return !this.songs;
+	}
+
+	static isListEnded () {
+		return this.songs - 1 <= this.currentSongIndex;
+	}
+
+	static onListEnded () {
+		return this.currentSongIndex = this.songs - 1;
+	}
+
+	static isListStart () {
+		return this.currentSongIndex <= 0;
+	}
+
+	static onListStart () {
+		return this.currentSongIndex = 0;
+	}
+
 	static isChange () {
-		let {audio, songs, currentSong, currentSongIndex} = this;
+		return this.audio.src !== (this.currentSong?.src || '');
+	}
 
-		if (currentSongIndex < 0) this.currentSongIndex = 0;
-		if (songs - 1 < currentSongIndex) this.currentSongIndex = songs - 1;
+	static onChange () {
+		// check list is not empty
+		if (!this.songs) return;
 
-		if (audio.src !== currentSong.src) {
-			audio.src    = currentSong.src;
-			let {paused} = this;
+		if (this.isListStart())
+			this.onListStart();
+
+		if (this.isListEnded())
+			this.onListEnded();
+
+		let {audio, currentSong, paused} = this;
+
+		if (this.isChange()) {
 			audio.pause();
+			audio.src = currentSong?.src || '';
+
 			if (paused)
 				this.play();
 
@@ -164,7 +225,7 @@ class MusicPlayer {
 
 	static next () {
 		this.currentSongIndex++;
-		this.isChange();
+		this.onChange();
 	}
 
 	static play () {
@@ -177,11 +238,11 @@ class MusicPlayer {
 
 	static pervius () {
 		this.currentSongIndex--;
-		this.isChange();
+		this.onChange();
 	}
 
 	static togglePlayPause () {
-		if (!this.songs) return;
+		if (this.isListEmpty()) return;
 		if (this.paused)
 			this.play();
 		else this.pause();
@@ -200,9 +261,13 @@ class MusicPlayer {
 		if (this.shuffleMode)
 			shuffle(this.queue, true);
 		else
-			this.queue.sort((a, b) => b - a);
+			this.queue.sort((a, b) => a - b);
+
+		// console.log(this.shuffleMode, this.queue);
 
 		$('.shuffle').innerHTML = this.shuffleMode ? 'shuffle_on' : 'shuffle';
+		this.currentSongIndex   = 0;
+		this.onChange();
 	}
 
 	static updateAudioTime () {
@@ -210,47 +275,20 @@ class MusicPlayer {
 	}
 
 	static update () {
-		let {audio, currentSong, isSeeking} = this;
+		let {audio, currentSong, currentSongIndex, songs, isSeeking} = this;
 
 		let curtime = timeToClock(audio.currentTime);
 		let durtime = timeToClock(audio.duration);
 
 		$('.curtime').innerHTML = curtime;
 		$('.durtime').innerHTML = durtime;
-		if (isSeeking) return;
-		$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100;
+		$('.counter').innerHTML = (songs !== 0) * (currentSongIndex + 1) + '/' + songs;
+		if (!isSeeking)
+			$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100 || 0;
 
 		$('.title').innerHTML  = currentSong?.name || 'Unknown';
-		$('.artist').innerHTML = currentSong?.artist || 'Unknown' + ' - ' + currentSong?.album || 'Unknown';
+		$('.artist').innerHTML = (currentSong?.artist || 'Unknown') + ' - ' + (currentSong?.album || 'Unknown');
+
 	}
 
-}
-
-function int (number = 0) {
-	return Math.floor(number) || 0;
-}
-
-function timeToClock (time = 0) {
-	time    = int(time);
-	let sec = int(time % 60);
-	let min = int(time / 60);
-	return min + ':' + (sec < 10 ? '0' : '') + sec;
-}
-
-function shuffle (array, bool) {
-	array = bool ? array : array.slice();
-
-	let rnd,
-	    length = array.length;
-	while (length > 1) {
-		rnd = int(Math.random() * length);
-
-		swap(array[--length], array[rnd]);
-	}
-
-	return array;
-}
-
-function swap (a, b) {
-	[a, b] = [b, a];
 }
