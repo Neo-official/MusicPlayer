@@ -199,10 +199,10 @@ class MusicPlayer {
 		let {audio, currentSong, paused} = this;
 
 		if (this.isChange()) {
-			audio.pause();
 			audio.src = currentSong?.src || '';
+			this.pause();
 
-			if (paused)
+			if (!paused)
 				this.play();
 
 			return true;
