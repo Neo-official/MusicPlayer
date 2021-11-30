@@ -92,21 +92,24 @@ class MusicPlayer {
 
 	static initialize () {
 		let {audio} = this,
-		play = $('.play');
+		    play    = $('.play');
 
 		audio.src      = '';
 		audio.autoplay = false;
 		audio.pause();
 		audio.ontimeupdate = () => this.update();
 		audio.onplay       = () => play.innerHTML = 'pause';
-		audio.onpause       = () => play.innerHTML = 'play_arrow';
+		audio.onpause      = () => play.innerHTML = 'play_arrow';
 
 
-		$('.next').onclick    = () => this.next();
-		play.onclick    = () => this.togglePlayPause();
-		$('.previus').onclick = () => this.pervius();
-		$('.repeat').onclick  = () => this.repeat();
-		$('.shuffle').onclick = () => this.shuffle();
+		$('.next').onclick       = () => this.next();
+		play.onclick             = () => this.togglePlayPause();
+		$('.previus').onclick    = () => this.pervius();
+		$('.repeat').onclick     = () => this.repeat();
+		$('.shuffle').onclick    = () => this.shuffle();
+		let menuList             = $('#menulist');
+		$('#menu').onclick       = () => menuList.classList.toggle('show');
+		$('#menulist *').onclick = () => menuList.classList.toggle('show');
 
 		let seekBar         = $('#seekbar');
 		seekBar.min         = 0;
@@ -129,7 +132,11 @@ class MusicPlayer {
 	}
 
 	static isChange () {
-		let {audio, currentSong} = this;
+		let {audio, songs, currentSong, currentSongIndex} = this;
+
+		if (currentSongIndex < 0) this.currentSongIndex = 0;
+		if (songs - 1 < currentSongIndex) this.currentSongIndex = songs - 1;
+
 		if (audio.src !== currentSong.src) {
 			audio.src    = currentSong.src;
 			let {paused} = this;
@@ -213,8 +220,8 @@ class MusicPlayer {
 		if (isSeeking) return;
 		$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100;
 
-		$('.title').innerHTML  = currentSong.name;
-		$('.artist').innerHTML = '';
+		$('.title').innerHTML  = currentSong?.name || 'Unknown';
+		$('.artist').innerHTML = currentSong?.artist || 'Unknown' + ' - ' + currentSong?.album || 'Unknown';
 	}
 
 }
@@ -227,7 +234,7 @@ function timeToClock (time = 0) {
 	time    = int(time);
 	let sec = int(time % 60);
 	let min = int(time / 60);
-	return (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
+	return min + ':' + (sec < 10 ? '0' : '') + sec;
 }
 
 function shuffle (array, bool) {

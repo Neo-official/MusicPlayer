@@ -16,7 +16,6 @@
 	<link href="css/dropzone.css" rel="stylesheet">
 </head>
 <body>
-<input type="file" multiple id="input-file" accept="audio/*">
 <div class="dropzone">Drop Song Files Here</div>
 <div class="music">
 	<div class="container">
@@ -44,21 +43,24 @@
 					<div class="btn next">skip_next</div>
 				</div>
 				<div class="progress">
-					<div class="time">
-						<div class="curtime">00:00</div>
-						<div class="durtime">00:00</div>
-					</div>
 					<label>
 						<input type="range" id="seekbar" class="seekbar">
 					</label>
+					<div class="time">
+						<div class="curtime">0:00</div>
+						<div class="durtime">0:00</div>
+					</div>
 				</div>
 			</div>
-
 		</div>
 		<div class="navigator">
 			<div id="list" class="btn list">grid_view</div>
 			<div id="search" class="btn search">search</div>
 			<div id="menu" class="btn menu">table_rows</div>
+			<div id="menulist">
+				<div class="version">Version: 0.9.5</div>
+				<div class="row"><div class="btn">audio_file</div>Choose Songs File<input type="file" multiple id="input-file" accept="audio/*"></div>
+			</div>
 		</div>
 	</div>
 </div>
