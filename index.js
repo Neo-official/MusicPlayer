@@ -110,35 +110,26 @@ class MusicPlayer {
 	static isSeeking        = false;
 
 	static initialize () {
-		let {audio} = this,
-		    play    = $('.play');
+		let {audio} = this;
 
 		audio.src      = '';
 		audio.autoplay = false;
 		audio.pause();
-		audio.volume       = 0.5;
+		audio.volume       = 0.15;
 		audio.ontimeupdate = () => this.update();
-		audio.onplay       = () => {
-			$('.music').classList.add('playing');
-			play.innerHTML = 'pause';
-		};
-		audio.onpause      = () => {
-			$('.music').classList.remove('playing');
-			play.innerHTML = 'play_arrow';
-		};
-
-		audio.onended = () => {
-			this.next();
-		};
+		audio.oncanplay    = () => this.oncanplay();
+		audio.onplay       = () => this.onplay();
+		audio.onpause      = () => this.onpause();
+		audio.onended      = () => this.onended();
 
 
 		$('.next').onclick    = () => this.next();
-		play.onclick          = () => this.togglePlayPause();
+		$('.play').onclick    = () => this.togglePlayPause();
 		$('.previus').onclick = () => this.pervius();
 		$('.repeat').onclick  = () => this.repeat();
 		$('.shuffle').onclick = () => this.shuffle();
-		let menuList          = $('#menulist');
-		$('#menu').onclick    = () => menuList.classList.toggle('show');
+		$('#menu').onclick    = () => $('#menulist').classList.toggle('show');
+		$('#list').onclick    = () => $('#playlist').classList.toggle('show');
 
 
 		let seekBar         = $('#seekbar');
@@ -153,12 +144,17 @@ class MusicPlayer {
 
 	static addFile (file) {
 		file.src = URL.createObjectURL(file);
-
+		let song = new Song({
+			id  : this.songs,
+			name: file.name,
+			src : file.src,
+			file: file
+		});
 		//if list is empty then ready audio to play
 		if (this.isListEmpty())
-			this.audio.src = file.src;
+			this.audio.src = song.src;
 
-		this.files.push(file);
+		this.files.push(song);
 		this.queue.push(this.files.length - 1);
 	}
 
@@ -187,8 +183,9 @@ class MusicPlayer {
 	}
 
 	static onChange () {
-		// check list is not empty
-		if (!this.songs) return;
+
+		if (this.isListEmpty())
+			return false;
 
 		if (this.isListStart())
 			this.onListStart();
@@ -199,7 +196,7 @@ class MusicPlayer {
 		let {audio, currentSong, paused} = this;
 
 		if (this.isChange()) {
-			audio.src = currentSong?.src || '';
+			audio.src = currentSong.src || '';
 			this.pause();
 
 			if (!paused)
@@ -249,10 +246,16 @@ class MusicPlayer {
 	}
 
 	static repeat () {
-		this.repeatMode = !this.repeatMode;
-
-		this.audio.loop        = this.repeatMode;
-		$('.repeat').innerHTML = this.repeatMode ? 'repeat_one' : 'repeat';
+		this.repeatMode   = !this.repeatMode;
+		this.audio.loop   = this.repeatMode;
+		let repeatElement = $('.repeat');
+		if (this.repeatMode) {
+			repeatElement.innerHTML = 'repeat_one';
+			repeatElement.classList.add('on');
+		} else {
+			repeatElement.innerHTML = 'repeat';
+			repeatElement.classList.remove('on');
+		}
 	}
 
 	static shuffle () {
@@ -264,31 +267,114 @@ class MusicPlayer {
 			this.queue.sort((a, b) => a - b);
 
 		// console.log(this.shuffleMode, this.queue);
-
-		$('.shuffle').innerHTML = this.shuffleMode ? 'shuffle_on' : 'shuffle';
-		this.currentSongIndex   = 0;
+		let shuffleElement = $('.shuffle');
+		if (this.shuffleMode) {
+			shuffleElement.innerHTML = 'shuffle_on';
+			shuffleElement.classList.add('on');
+		} else {
+			shuffleElement.innerHTML = 'shuffle';
+			shuffleElement.classList.remove('on');
+		}
+		this.currentSongIndex = 0;
 		this.onChange();
 	}
 
+	static oncanplay () {
+		let {currentSong, audio} = this,
+		    durtime              = timeToClock(audio.duration);
+
+		currentSong.time = durtime;
+
+		$('.durtime').innerHTML = durtime;
+		$('.title').innerHTML   = currentSong.name || 'Unknown';
+		$('.artist').innerHTML  = (currentSong.artist || 'Unknown') + ' - ' + (currentSong.album || 'Unknown');
+
+	}
+
+	static onplay () {
+		$('.music').classList.add('playing');
+		$('.play').innerHTML = 'pause';
+	}
+
+	static onpause () {
+		$('.music').classList.remove('playing');
+		$('.play').innerHTML = 'play_arrow';
+	}
+
+	static onended () {
+		this.next();
+		this.play();
+	}
+
 	static updateAudioTime () {
+		if (this.isListEmpty()) return;
 		this.audio.currentTime = $('#seekbar').value / 100 * this.audio.duration;
 	}
 
 	static update () {
-		let {audio, currentSong, currentSongIndex, songs, isSeeking} = this;
+		let {audio, currentSongIndex, songs, isSeeking} = this;
 
-		let curtime = timeToClock(audio.currentTime);
-		let durtime = timeToClock(audio.duration);
-
-		$('.curtime').innerHTML = curtime;
-		$('.durtime').innerHTML = durtime;
+		$('.curtime').innerHTML = timeToClock(audio.currentTime);
 		$('.counter').innerHTML = (songs !== 0) * (currentSongIndex + 1) + '/' + songs;
 		if (!isSeeking)
 			$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100 || 0;
 
-		$('.title').innerHTML  = currentSong?.name || 'Unknown';
-		$('.artist').innerHTML = (currentSong?.artist || 'Unknown') + ' - ' + (currentSong?.album || 'Unknown');
-
 	}
 
+}
+
+class Song {
+	constructor ({
+		             id = 0,
+		             name,
+		             title = name,
+		             artist = 'Unknown',
+		             album = 'Unknown',
+		             albumArt = './img/0.png',
+		             src = '',
+		             file
+	             }) {
+		this.id       = id;
+		this.name     = name;
+		this.title    = title;
+		this.artist   = artist;
+		this.album    = album;
+		this.albumArt = albumArt;
+		this.src      = src;
+		this.file     = file;
+		this.duration = 0;
+
+		this.elements = this.initialize();
+	}
+
+	set time (value) {
+		this.elements.time.innerHTML = value;
+
+		this.duration = value;
+		return this.duration;
+	}
+
+	initialize () {
+		let songElement = $('.song').cloneNode(true);
+		let elements    = {
+			song    : songElement,
+			title   : songElement.querySelector('.title'),
+			artist  : songElement.querySelector('.artist'),
+			time    : songElement.querySelector('.time'),
+			albumArt: songElement.querySelector('.albumArt')
+		};
+
+		elements.song.onclick     = () => {
+			MusicPlayer.currentSongIndex = this.id;
+			MusicPlayer.onChange();
+			$('#playlist').classList.remove('show');
+		};
+		elements.title.innerHTML  = this.title;
+		elements.artist.innerHTML = this.artist + '-' + this.album;
+		elements.time.innerHTML   = this.duration;
+
+		elements.albumArt.style.backgroundImage = 'url(' + this.albumArt + ')';
+		$('#playlist').appendChild(songElement);
+		return elements;
+	}
 }
