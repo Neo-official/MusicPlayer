@@ -4,6 +4,7 @@ function setup () {
 	initializeServiceWorker();
 	checkForInstallApp();
 	initializeDragAndDrop();
+	initializeNotification();
 	MusicPlayer.initialize();
 }
 
@@ -55,6 +56,40 @@ function initializeServiceWorker () {
 		});
 	} else {
 		console.log('Service workers are not supported.');
+	}
+}
+
+function initializeNotification () {
+	if ('mediaSession' in navigator) {
+		navigator.mediaSession.setActionHandler('play', () => {
+			navigator.mediaSession.playbackState = "playing";
+			MusicPlayer.play();
+		});
+		navigator.mediaSession.setActionHandler('pause', () => {
+			navigator.mediaSession.playbackState = "paused";
+			MusicPlayer.pause();
+		});
+		navigator.mediaSession.setActionHandler('stop', () => {
+			navigator.mediaSession.playbackState = "stopped";
+			MusicPlayer.stop();
+		});
+		navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+			MusicPlayer.seekbackward(details.seekOffset || 10);
+		});
+		navigator.mediaSession.setActionHandler('seekforward', (details) => {
+			MusicPlayer.seekforward(details.seekOffset || 10);
+		});
+		navigator.mediaSession.setActionHandler('seekto', (details) => {
+			let {audio} = MusicPlayer;
+			if (details.fastSeek && 'fastSeek' in audio) {
+				audio.fastSeek(details.seekTime);
+				return;
+			}
+			MusicPlayer.updateAudioTime(details.seekTime);
+		});
+		navigator.mediaSession.setActionHandler('previoustrack', () => MusicPlayer.pervius());
+		navigator.mediaSession.setActionHandler('nexttrack', () => MusicPlayer.next());
+		// navigator.mediaSession.setActionHandler('skipad', function () { /* Code excerpted. */ });
 	}
 }
 
@@ -124,7 +159,9 @@ class MusicPlayer {
 
 
 		$('.next').onclick    = () => this.next();
+		$('.forward').onclick    = () => this.seekforward(10);
 		$('.play').onclick    = () => this.togglePlayPause();
+		$('.backward').onclick = () => this.seekbackward(10);
 		$('.previus').onclick = () => this.pervius();
 		$('.repeat').onclick  = () => this.repeat();
 		$('.shuffle').onclick = () => this.shuffle();
@@ -139,7 +176,7 @@ class MusicPlayer {
 		seekBar.onmousedown = () => mouseIsDown = true;
 		seekBar.onmouseup   = () => mouseIsDown = false;
 		// seekBar.onchange = () => this.updateAudioTime();
-		seekBar.onmousemove = () => (this.isSeeking = mouseIsDown) && this.updateAudioTime();
+		seekBar.onmousemove = () => (this.isSeeking = mouseIsDown) && this.updateAudioTime(seekBar.value / 100 * this.audio.duration);
 	}
 
 	static addFile (file) {
@@ -245,6 +282,20 @@ class MusicPlayer {
 		else this.pause();
 	}
 
+	static stop () {
+		this.pause();
+		this.audio.currentTime = 0;
+
+	}
+
+	static seekbackward (value) {
+		this.audio.currentTime = this.audio.currentTime - value;
+	}
+
+	static seekforward (value) {
+		this.audio.currentTime = this.audio.currentTime + value;
+	}
+
 	static repeat () {
 		this.repeatMode   = !this.repeatMode;
 		this.audio.loop   = this.repeatMode;
@@ -288,6 +339,8 @@ class MusicPlayer {
 		$('.durtime').innerHTML = durtime;
 		$('.title').innerHTML   = currentSong.name || 'Unknown';
 		$('.artist').innerHTML  = (currentSong.artist || 'Unknown') + ' - ' + (currentSong.album || 'Unknown');
+		if ('mediaSession' in navigator)
+			navigator.mediaSession.metadata = currentSong.metaData;
 
 	}
 
@@ -306,12 +359,22 @@ class MusicPlayer {
 		this.play();
 	}
 
-	static updateAudioTime () {
+	static updateAudioTime (value = 0) {
 		if (this.isListEmpty()) return;
-		this.audio.currentTime = $('#seekbar').value / 100 * this.audio.duration;
+		let {audio} = this;
+
+		if ('fastSeek' in audio) {
+			audio.fastSeek(value);
+			return;
+		}
+		this.audio.currentTime = value;
 	}
 
 	static update () {
+
+		if (this.isListEmpty())
+			return;
+
 		let {audio, currentSongIndex, songs, isSeeking} = this;
 
 		$('.curtime').innerHTML = timeToClock(audio.currentTime);
@@ -319,6 +382,13 @@ class MusicPlayer {
 		if (!isSeeking)
 			$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100 || 0;
 
+		if ('mediaSession' in navigator) {
+			navigator.mediaSession.setPositionState({
+				duration    : audio.duration || 0,
+				playbackRate: audio.playbackRate,
+				position    : audio.currentTime || 0
+			});
+		}
 	}
 
 }
@@ -345,6 +415,21 @@ class Song {
 		this.duration = 0;
 
 		this.elements = this.initialize();
+		if ('mediaSession' in navigator) {
+			this.metaData = new MediaMetadata({
+				title  : this.title,
+				artist : this.artist,
+				album  : this.album,
+				artwork: [
+					{src: this.albumArt, sizes: '96x96', type: 'image/png'},
+					{src: this.albumArt, sizes: '128x128', type: 'image/png'},
+					{src: this.albumArt, sizes: '192x192', type: 'image/png'},
+					{src: this.albumArt, sizes: '256x256', type: 'image/png'},
+					{src: this.albumArt, sizes: '384x384', type: 'image/png'},
+					{src: this.albumArt, sizes: '512x512', type: 'image/png'},
+				]
+			});
+		}
 	}
 
 	set time (value) {
