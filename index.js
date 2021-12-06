@@ -40,6 +40,7 @@ function initializeDragAndDrop () {
 
 		// Use DataTransfer interface to access the file(s)
 		inputFile.files = files;
+		inputFile.onchange();
 
 		event.preventDefault();
 
@@ -87,7 +88,7 @@ function initializeNotification () {
 			}
 			MusicPlayer.updateAudioTime(details.seekTime);
 		});
-		navigator.mediaSession.setActionHandler('previoustrack', () => MusicPlayer.pervius());
+		navigator.mediaSession.setActionHandler('previoustrack', () => MusicPlayer.previous());
 		navigator.mediaSession.setActionHandler('nexttrack', () => MusicPlayer.next());
 		// navigator.mediaSession.setActionHandler('skipad', function () { /* Code excerpted. */ });
 	}
@@ -95,12 +96,12 @@ function initializeNotification () {
 
 function checkForInstallApp () {
 	window.addEventListener('beforeinstallprompt', (event) => {
-		// Prevent the mini-infobar from appearing on mobile.
+		// Prevent the mini-info-bar from appearing on mobile.
 		event.preventDefault();
-		console.log('👍', 'beforeinstallprompt', event);
+		console.log('👍', 'preinstallation', event);
 		// Stash the event so it can be triggered later.
 		window.deferredPrompt = event;
-		// Remove the 'hidden' class from the install button container.
+		// Remove the 'hidden' class from the installation button container.
 		// divInstall.classList.toggle('hidden', false);
 	});
 
@@ -162,7 +163,7 @@ class MusicPlayer {
 		$('.forward').onclick    = () => this.seekforward(10);
 		$('.play').onclick    = () => this.togglePlayPause();
 		$('.backward').onclick = () => this.seekbackward(10);
-		$('.previus').onclick = () => this.pervius();
+		$('.previous').onclick = () => this.previous();
 		$('.repeat').onclick  = () => this.repeat();
 		$('.shuffle').onclick = () => this.shuffle();
 		$('#menu').onclick    = () => $('#menulist').classList.toggle('show');
@@ -270,7 +271,7 @@ class MusicPlayer {
 		return this.audio.pause();
 	}
 
-	static pervius () {
+	static previous () {
 		this.currentSongIndex--;
 		this.onChange();
 	}
@@ -332,11 +333,11 @@ class MusicPlayer {
 
 	static oncanplay () {
 		let {currentSong, audio} = this,
-		    durtime              = timeToClock(audio.duration);
+		    durationTime              = timeToClock(audio.duration);
 
-		currentSong.time = durtime;
+		currentSong.time = durationTime;
 
-		$('.durtime').innerHTML = durtime;
+		$('.durationtime').innerHTML = durationTime;
 		$('.title').innerHTML   = currentSong.name || 'Unknown';
 		$('.artist').innerHTML  = (currentSong.artist || 'Unknown') + ' - ' + (currentSong.album || 'Unknown');
 		if ('mediaSession' in navigator)
@@ -377,7 +378,7 @@ class MusicPlayer {
 
 		let {audio, currentSongIndex, songs, isSeeking} = this;
 
-		$('.curtime').innerHTML = timeToClock(audio.currentTime);
+		$('.currenttime').innerHTML = timeToClock(audio.currentTime);
 		$('.counter').innerHTML = (songs !== 0) * (currentSongIndex + 1) + '/' + songs;
 		if (!isSeeking)
 			$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100 || 0;

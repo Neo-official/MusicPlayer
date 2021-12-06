@@ -142,7 +142,7 @@ html, body {
     font-size: 28px;
 }
 
-.play, .next, .previus, .backward, .forward {
+.play, .next, .previous, .backward, .forward {
     border-radius: 50%;
     background-color: #000000d9;
     margin: 4px;
