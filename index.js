@@ -11,39 +11,38 @@ function setup () {
 window.onload = () => setup();
 
 function initializeDragAndDrop () {
-	let inputFile              = document.getElementById('input-file');
-	window.ondragover          = event => {
+	let inputFile = $('#input-file');
+
+	window.ondragover = event => {
 		event.preventDefault();
 		$('.dropzone').classList.add('show');
 
 	};
+
 	$('.dropzone').ondragleave = event => {
 		event.preventDefault();
 		event.stopPropagation();
 		$('.dropzone').classList.remove('show');
 	};
-	inputFile.onchange         = event => {
+
+	inputFile.onchange = event => {
 		// console.log(event);
 		event.preventDefault();
-		$('#menulist').classList.remove('show');
 		let {files} = event.target;
-		for (const file of files) {
-			MusicPlayer.addFile(file);
-			// console.log('... filename);
-		}
+		if (!files.length) return;
+		$('#menulist').classList.remove('show');
 
+		MusicPlayer.addFiles(files);
 	};
-	window.ondrop              = event => {
-		console.log(event);
+
+	window.ondrop = event => {
+		// console.log(event);
+		event.preventDefault();
 		let {files} = event.dataTransfer;
 		$('.dropzone').classList.remove('show');
+		$('#menulist').classList.remove('show');
 
-		// Use DataTransfer interface to access the file(s)
-		inputFile.files = files;
-		inputFile.onchange();
-
-		event.preventDefault();
-
+		MusicPlayer.addFiles(files);
 	};
 }
 
@@ -71,7 +70,7 @@ function initializeNotification () {
 			MusicPlayer.pause();
 		});
 		navigator.mediaSession.setActionHandler('stop', () => {
-			navigator.mediaSession.playbackState = "stopped";
+			navigator.mediaSession.playbackState = "paused";
 			MusicPlayer.stop();
 		});
 		navigator.mediaSession.setActionHandler('seekbackward', (details) => {
@@ -126,8 +125,7 @@ function timeToClock (time = 0) {
 function shuffle (array, bool) {
 	array = bool ? array : array.slice();
 
-	let rnd,
-	    i = array.length;
+	let rnd, i = array.length;
 	while (1 < i--) {
 		rnd = int(Math.random() * i);
 
@@ -141,7 +139,7 @@ function shuffle (array, bool) {
 class MusicPlayer {
 	static audio            = new Audio("");
 	static queue            = [];
-	static files            = [];
+	static songs            = [];
 	static currentSongIndex = 0;
 	static isSeeking        = false;
 
@@ -159,15 +157,15 @@ class MusicPlayer {
 		audio.onended      = () => this.onended();
 
 
-		$('.next').onclick    = () => this.next();
-		$('.forward').onclick    = () => this.seekforward(10);
-		$('.play').onclick    = () => this.togglePlayPause();
+		$('.next').onclick     = () => this.next();
+		$('.forward').onclick  = () => this.seekforward(10);
+		$('.play').onclick     = () => this.togglePlayPause();
 		$('.backward').onclick = () => this.seekbackward(10);
 		$('.previous').onclick = () => this.previous();
-		$('.repeat').onclick  = () => this.repeat();
-		$('.shuffle').onclick = () => this.shuffle();
-		$('#menu').onclick    = () => $('#menulist').classList.toggle('show');
-		$('#list').onclick    = () => $('#playlist').classList.toggle('show');
+		$('.repeat').onclick   = () => this.repeat();
+		$('.shuffle').onclick  = () => this.shuffle();
+		$('#menu').onclick     = () => $('#menulist').classList.toggle('show');
+		$('#list').onclick     = () => $('#playlist').classList.toggle('show');
 
 
 		let seekBar         = $('#seekbar');
@@ -180,32 +178,42 @@ class MusicPlayer {
 		seekBar.onmousemove = () => (this.isSeeking = mouseIsDown) && this.updateAudioTime(seekBar.value / 100 * this.audio.duration);
 	}
 
+	static addFiles (files) {
+		for (const file of files) {
+			this.addFile(file);
+			// console.log('... file: ', file);
+		}
+	}
+
 	static addFile (file) {
+
+		if (!file.type.includes('audio'))
+			return;
+
+		let {audio, songs, queue} = this;
+
 		file.src = URL.createObjectURL(file);
-		let song = new Song({
-			id  : this.songs,
-			name: file.name,
-			src : file.src,
-			file: file
+
+		let song = new Media({
+			id: this.length, name: file.name, src: file.src, file: file
 		});
 		//if list is empty then ready audio to play
-		if (this.isListEmpty())
-			this.audio.src = song.src;
+		if (this.isListEmpty()) audio.src = song.src;
 
-		this.files.push(song);
-		this.queue.push(this.files.length - 1);
+		songs.push(song);
+		queue.push(this.length);
 	}
 
 	static isListEmpty () {
-		return !this.songs;
+		return !this.length;
 	}
 
 	static isListEnded () {
-		return this.songs - 1 <= this.currentSongIndex;
+		return this.length - 1 <= this.currentSongIndex;
 	}
 
 	static onListEnded () {
-		return this.currentSongIndex = this.songs - 1;
+		return this.currentSongIndex = this.length - 1;
 	}
 
 	static isListStart () {
@@ -222,14 +230,11 @@ class MusicPlayer {
 
 	static onChange () {
 
-		if (this.isListEmpty())
-			return false;
+		if (this.isListEmpty()) return false;
 
-		if (this.isListStart())
-			this.onListStart();
+		if (this.isListStart()) this.onListStart();
 
-		if (this.isListEnded())
-			this.onListEnded();
+		if (this.isListEnded()) this.onListEnded();
 
 		let {audio, currentSong, paused} = this;
 
@@ -246,12 +251,16 @@ class MusicPlayer {
 		return false;
 	}
 
-	static get songs () {
+	static get length () {
 		return this.queue.length;
 	}
 
+	/**
+	 *
+	 * @returns {Media}
+	 */
 	static get currentSong () {
-		return this.files[this.queue[this.currentSongIndex]];
+		return this.songs[this.queue[this.currentSongIndex]];
 	}
 
 	static get paused () {
@@ -278,9 +287,7 @@ class MusicPlayer {
 
 	static togglePlayPause () {
 		if (this.isListEmpty()) return;
-		if (this.paused)
-			this.play();
-		else this.pause();
+		if (this.paused) this.play(); else this.pause();
 	}
 
 	static stop () {
@@ -313,10 +320,7 @@ class MusicPlayer {
 	static shuffle () {
 		this.shuffleMode = !this.shuffleMode;
 
-		if (this.shuffleMode)
-			shuffle(this.queue, true);
-		else
-			this.queue.sort((a, b) => a - b);
+		if (this.shuffleMode) shuffle(this.queue, true); else this.queue.sort((a, b) => a - b);
 
 		// console.log(this.shuffleMode, this.queue);
 		let shuffleElement = $('.shuffle');
@@ -333,15 +337,15 @@ class MusicPlayer {
 
 	static oncanplay () {
 		let {currentSong, audio} = this,
-		    durationTime              = timeToClock(audio.duration);
+		    durationTime = timeToClock(audio.duration);
 
 		currentSong.time = durationTime;
 
 		$('.durationtime').innerHTML = durationTime;
-		$('.title').innerHTML   = currentSong.name || 'Unknown';
-		$('.artist').innerHTML  = (currentSong.artist || 'Unknown') + ' - ' + (currentSong.album || 'Unknown');
-		if ('mediaSession' in navigator)
-			navigator.mediaSession.metadata = currentSong.metaData;
+		$('.title').innerHTML        = currentSong.name || 'Unknown';
+		$('.artist').innerHTML       = (currentSong.artist || 'Unknown') + ' - ' + (currentSong.album || 'Unknown');
+
+		if ('mediaSession' in navigator) navigator.mediaSession.metadata = currentSong.metaData;
 
 	}
 
@@ -368,33 +372,29 @@ class MusicPlayer {
 			audio.fastSeek(value);
 			return;
 		}
-		this.audio.currentTime = value;
+		audio.currentTime = value;
 	}
 
 	static update () {
 
-		if (this.isListEmpty())
-			return;
+		if (this.isListEmpty()) return;
 
-		let {audio, currentSongIndex, songs, isSeeking} = this;
+		let {audio, currentSongIndex, length, isSeeking} = this;
 
 		$('.currenttime').innerHTML = timeToClock(audio.currentTime);
-		$('.counter').innerHTML = (songs !== 0) * (currentSongIndex + 1) + '/' + songs;
-		if (!isSeeking)
-			$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100 || 0;
+		$('.counter').innerHTML     = (length !== 0) * (currentSongIndex + 1) + '/' + length;
+		if (!isSeeking) $('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100 || 0;
 
 		if ('mediaSession' in navigator) {
 			navigator.mediaSession.setPositionState({
-				duration    : audio.duration || 0,
-				playbackRate: audio.playbackRate,
-				position    : audio.currentTime || 0
+				duration: audio.duration || 0, playbackRate: audio.playbackRate, position: audio.currentTime || 0
 			});
 		}
 	}
 
 }
 
-class Song {
+class Media {
 	constructor ({
 		             id = 0,
 		             name,
@@ -418,10 +418,7 @@ class Song {
 		this.elements = this.initialize();
 		if ('mediaSession' in navigator) {
 			this.metaData = new MediaMetadata({
-				title  : this.title,
-				artist : this.artist,
-				album  : this.album,
-				artwork: [
+				title: this.title, artist: this.artist, album: this.album, artwork: [
 					{src: this.albumArt, sizes: '96x96', type: 'image/png'},
 					{src: this.albumArt, sizes: '128x128', type: 'image/png'},
 					{src: this.albumArt, sizes: '192x192', type: 'image/png'},
@@ -434,7 +431,7 @@ class Song {
 	}
 
 	set time (value) {
-		this.elements.time.innerHTML = value;
+		this.elements.duration.innerHTML = value;
 
 		this.duration = value;
 		return this.duration;
@@ -446,18 +443,18 @@ class Song {
 			song    : songElement,
 			title   : songElement.querySelector('.title'),
 			artist  : songElement.querySelector('.artist'),
-			time    : songElement.querySelector('.time'),
+			duration: songElement.querySelector('.time'),
 			albumArt: songElement.querySelector('.albumArt')
 		};
 
-		elements.song.onclick     = () => {
+		elements.song.onclick       = () => {
 			MusicPlayer.currentSongIndex = this.id;
 			MusicPlayer.onChange();
 			$('#playlist').classList.remove('show');
 		};
-		elements.title.innerHTML  = this.title;
-		elements.artist.innerHTML = this.artist + '-' + this.album;
-		elements.time.innerHTML   = this.duration;
+		elements.title.innerHTML    = this.title;
+		elements.artist.innerHTML   = this.artist + '-' + this.album;
+		elements.duration.innerHTML = this.duration;
 
 		elements.albumArt.style.backgroundImage = 'url(' + this.albumArt + ')';
 		$('#playlist').appendChild(songElement);

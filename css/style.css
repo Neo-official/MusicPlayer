@@ -356,13 +356,17 @@ html, body {
     opacity: 0;
     transition: 150ms all linear 75ms;
     transform: scale(0.95) translateY(32px);
-    overflow: auto;
+    overflow: hidden;
     padding-bottom: 64px;
+}
+
+#playlist:hover {
+    overflow: auto;
 }
 
 /*noinspection ALL*/
 @supports (overflow: overlay) {
-    #playlist{
+    #playlist:hover {
         overflow: overlay;
     }
 }
