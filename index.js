@@ -163,6 +163,7 @@ class MusicPlayer {
 		audio.onpause      = () => this.onpause();
 		audio.onended      = () => this.onended();
 
+		let playList = $('#play-list')
 
 		$('.next').onclick     = () => this.next();
 		$('.forward').onclick  = () => this.seekforward(10);
@@ -172,13 +173,18 @@ class MusicPlayer {
 		$('.repeat').onclick   = () => this.repeat();
 		$('.shuffle').onclick  = () => this.shuffle();
 		$('#menu').onclick     = () => $('#menu-list').classList.toggle('show');
-		$('#list').onclick     = () => $('#play-list').classList.toggle('show');
+		$('#list').onclick     = () => playList.classList.toggle('show');
 
 		let searchInput      = $('#search-list #search-input');
 		$('#search').onclick = () => $('#search-list').classList.toggle('show');
 		searchInput.onkeyup  = () => this.search(searchInput.value);
 
+		/*playList.onscroll = ()=>{
+			let elements = [...document.querySelectorAll('#play-list .song')].filter(song=>/!*playList.scrollTop < song.offsetTop&&*!/(playList.scrollTop+playList.scrollHeight) > song.offsetTop)
 
+			console.log('scrolled', elements);
+		}
+*/
 		let seekBar         = $('#seekbar');
 		seekBar.min         = 0;
 		seekBar.max         = 100;
@@ -206,46 +212,48 @@ class MusicPlayer {
 		// file source doesn't exist, so we give them a source as Blob()
 		file.src = URL.createObjectURL(file);
 
-		new jsmediatags.Reader(file)
-			.setTagsToRead(["title", "artist", "album", "picture"])
-			.read({
-				onSuccess: tag => {
-					console.log(tag);
+		setTimeout(() => {
+			new jsmediatags.Reader(file)
+				.setTagsToRead(["title", "artist", "album", "picture"])
+				.read({
+					onSuccess: tag => {
+						console.log(tag);
+						let song = new Media({
+							id      : this.length,
+							name    : file.name,
+							src     : file.src,
+							file    : file,
+							title   : tag.tags.title,
+							artist  : tag.tags.artist,
+							album   : tag.tags.album,
+							albumArt: imageDataToBase64(tag.tags.picture?.data)
+						});
+						//if list is empty then ready audio to play
+						if (this.isListEmpty())
+							audio.src = song.src;
 
-					let song = new Media({
-						id      : this.length,
-						name    : file.name,
-						src     : file.src,
-						file    : file,
-						title   : tag.tags.title,
-						artist  : tag.tags.artist,
-						album   : tag.tags.album,
-						albumArt: imageDataToBase64(tag.tags.picture?.data)
-					});
-					//if list is empty then ready audio to play
-					if (this.isListEmpty())
-						audio.src = song.src;
+						songs.push(song);
+						queue.push(this.length);
 
-					songs.push(song);
-					queue.push(this.length);
-				},
-				onError  : error => {
-					let song = new Media({
-						id  : this.length,
-						name: file.name,
-						src : file.src,
-						file: file
-					});
-					//if list is empty then ready audio to play
-					if (this.isListEmpty())
-						audio.src = song.src;
+					},
+					onError  : error => {
+						let song = new Media({
+							id  : this.length,
+							name: file.name,
+							src : file.src,
+							file: file
+						});
+						//if list is empty then ready audio to play
+						if (this.isListEmpty())
+							audio.src = song.src;
 
-					songs.push(song);
-					queue.push(this.length);
+						songs.push(song);
+						queue.push(this.length);
 
-					console.log(':(', error.type, error.info);
-				}
-			});
+						console.log(':(', error.type, error.info);
+					}
+				});
+		}, 10);
 	}
 
 	static isListEmpty () {
@@ -331,7 +339,9 @@ class MusicPlayer {
 
 	static togglePlayPause () {
 		if (this.isListEmpty()) return;
-		if (this.paused) this.play(); else this.pause();
+		if (this.paused)
+			this.play();
+		else this.pause();
 	}
 
 	static stop () {
@@ -364,7 +374,9 @@ class MusicPlayer {
 	static shuffle () {
 		this.shuffleMode = !this.shuffleMode;
 
-		if (this.shuffleMode) shuffle(this.queue, true); else this.queue.sort((a, b) => a - b);
+		if (this.shuffleMode)
+			shuffle(this.queue, true);
+		else this.queue.sort((a, b) => a - b);
 
 		// console.log(this.shuffleMode, this.queue);
 		let shuffleElement = $('.shuffle');
@@ -395,7 +407,8 @@ class MusicPlayer {
 			$('.albumArt').style.backgroundImage             = '';
 			$('.albumArt:not(.cover)').style.backgroundImage = '';
 		}
-		if ('mediaSession' in navigator) navigator.mediaSession.metadata = currentSong.metaData;
+		if ('mediaSession' in navigator)
+			navigator.mediaSession.metadata = currentSong.metaData;
 
 	}
 
@@ -433,11 +446,14 @@ class MusicPlayer {
 
 		$('.currenttime').innerHTML = timeToClock(audio.currentTime);
 		$('.counter').innerHTML     = (length !== 0) * (currentSongIndex + 1) + '/' + length;
-		if (!isSeeking) $('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100 || 0;
+		if (!isSeeking)
+			$('#seekbar').value = (int(audio.currentTime) / int(audio.duration)) * 100 || 0;
 
 		if ('mediaSession' in navigator) {
 			navigator.mediaSession.setPositionState({
-				duration: audio.duration || 0, playbackRate: audio.playbackRate, position: audio.currentTime || 0
+				duration: audio.duration || 0,
+				playbackRate: audio.playbackRate,
+				position: audio.currentTime || 0
 			});
 		}
 	}
@@ -532,6 +548,8 @@ class Media {
 			MusicPlayer.currentSongIndex = this.id;
 			MusicPlayer.onChange();
 			$('#play-list').classList.remove('show');
+			$('#search-list').classList.remove('show');
+			MusicPlayer.play();
 		};
 		elements.title.innerHTML    = this.title;
 		elements.artist.innerHTML   = this.artist + '-' + this.album;
