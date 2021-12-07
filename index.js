@@ -30,7 +30,7 @@ function initializeDragAndDrop () {
 		event.preventDefault();
 		let {files} = event.target;
 		if (!files.length) return;
-		$('#menulist').classList.remove('show');
+		$('#menu-list').classList.remove('show');
 
 		MusicPlayer.addFiles(files);
 	};
@@ -40,7 +40,7 @@ function initializeDragAndDrop () {
 		event.preventDefault();
 		let {files} = event.dataTransfer;
 		$('.dropzone').classList.remove('show');
-		$('#menulist').classList.remove('show');
+		$('#menu-list').classList.remove('show');
 
 		MusicPlayer.addFiles(files);
 	};
@@ -136,6 +136,12 @@ function shuffle (array, bool) {
 	return array;
 }
 
+function imageDataToBase64 (data = []) {
+	data = data.map(x => String.fromCharCode(x)).join('');
+	data = window.btoa(data);
+	return data ? 'data:image/png;base64,' + data : './img/0.png';
+}
+
 class MusicPlayer {
 	static audio            = new Audio("");
 	static queue            = [];
@@ -149,9 +155,10 @@ class MusicPlayer {
 		audio.src      = '';
 		audio.autoplay = false;
 		audio.pause();
-		audio.volume       = 0.15;
+		audio.volume = 0.15;
+
 		audio.ontimeupdate = () => this.update();
-		audio.oncanplay    = () => this.oncanplay();
+		audio.oncanplay    = () => this.onload();
 		audio.onplay       = () => this.onplay();
 		audio.onpause      = () => this.onpause();
 		audio.onended      = () => this.onended();
@@ -164,8 +171,12 @@ class MusicPlayer {
 		$('.previous').onclick = () => this.previous();
 		$('.repeat').onclick   = () => this.repeat();
 		$('.shuffle').onclick  = () => this.shuffle();
-		$('#menu').onclick     = () => $('#menulist').classList.toggle('show');
-		$('#list').onclick     = () => $('#playlist').classList.toggle('show');
+		$('#menu').onclick     = () => $('#menu-list').classList.toggle('show');
+		$('#list').onclick     = () => $('#play-list').classList.toggle('show');
+
+		let searchInput      = $('#search-list #search-input');
+		$('#search').onclick = () => $('#search-list').classList.toggle('show');
+		searchInput.onkeyup  = () => this.search(searchInput.value);
 
 
 		let seekBar         = $('#seekbar');
@@ -186,22 +197,55 @@ class MusicPlayer {
 	}
 
 	static addFile (file) {
-
+		// check file type as audio/*
 		if (!file.type.includes('audio'))
 			return;
 
 		let {audio, songs, queue} = this;
 
+		// file source doesn't exist, so we give them a source as Blob()
 		file.src = URL.createObjectURL(file);
 
-		let song = new Media({
-			id: this.length, name: file.name, src: file.src, file: file
-		});
-		//if list is empty then ready audio to play
-		if (this.isListEmpty()) audio.src = song.src;
+		new jsmediatags.Reader(file)
+			.setTagsToRead(["title", "artist", "album", "picture"])
+			.read({
+				onSuccess: tag => {
+					console.log(tag);
 
-		songs.push(song);
-		queue.push(this.length);
+					let song = new Media({
+						id      : this.length,
+						name    : file.name,
+						src     : file.src,
+						file    : file,
+						title   : tag.tags.title,
+						artist  : tag.tags.artist,
+						album   : tag.tags.album,
+						albumArt: imageDataToBase64(tag.tags.picture?.data)
+					});
+					//if list is empty then ready audio to play
+					if (this.isListEmpty())
+						audio.src = song.src;
+
+					songs.push(song);
+					queue.push(this.length);
+				},
+				onError  : error => {
+					let song = new Media({
+						id  : this.length,
+						name: file.name,
+						src : file.src,
+						file: file
+					});
+					//if list is empty then ready audio to play
+					if (this.isListEmpty())
+						audio.src = song.src;
+
+					songs.push(song);
+					queue.push(this.length);
+
+					console.log(':(', error.type, error.info);
+				}
+			});
 	}
 
 	static isListEmpty () {
@@ -335,16 +379,22 @@ class MusicPlayer {
 		this.onChange();
 	}
 
-	static oncanplay () {
+	static onload () {
 		let {currentSong, audio} = this,
-		    durationTime = timeToClock(audio.duration);
+		    durationTime         = timeToClock(audio.duration);
 
 		currentSong.time = durationTime;
 
 		$('.durationtime').innerHTML = durationTime;
-		$('.title').innerHTML        = currentSong.name || 'Unknown';
+		$('.title').innerHTML        = currentSong.title || 'Unknown';
 		$('.artist').innerHTML       = (currentSong.artist || 'Unknown') + ' - ' + (currentSong.album || 'Unknown');
-
+		if (currentSong.albumArt) {
+			$('.albumArt').style.backgroundImage             = 'url(' + currentSong.albumArt + ')';
+			$('.albumArt:not(.cover)').style.backgroundImage = 'url(' + currentSong.albumArt + ')';
+		} else {
+			$('.albumArt').style.backgroundImage             = '';
+			$('.albumArt:not(.cover)').style.backgroundImage = '';
+		}
 		if ('mediaSession' in navigator) navigator.mediaSession.metadata = currentSong.metaData;
 
 	}
@@ -392,6 +442,33 @@ class MusicPlayer {
 		}
 	}
 
+	static search (value = '') {
+		value = value.trim().toLowerCase();
+
+		if (!value.length) return;
+
+		console.log(value);
+		let result =
+			    this.songs.filter(song =>
+				    song.title.toLowerCase().includes(value) ||
+				    song.artist.toLowerCase().includes(value) ||
+				    song.album.toLowerCase().includes(value)
+			    );
+
+		let searchList = $('#search-list #result');
+
+		searchList.innerHTML = '';
+		if (result.length) {
+			searchList.classList.remove('empty');
+
+			for (const {elements: {song}} of result)
+				searchList.appendChild(song);
+
+		} else {
+			searchList.classList.add('empty');
+			searchList.innerHTML += 'No Result';
+		}
+	}
 }
 
 class Media {
@@ -416,9 +493,13 @@ class Media {
 		this.duration = 0;
 
 		this.elements = this.initialize();
+
 		if ('mediaSession' in navigator) {
 			this.metaData = new MediaMetadata({
-				title: this.title, artist: this.artist, album: this.album, artwork: [
+				title  : this.title,
+				artist : this.artist,
+				album  : this.album,
+				artwork: [
 					{src: this.albumArt, sizes: '96x96', type: 'image/png'},
 					{src: this.albumArt, sizes: '128x128', type: 'image/png'},
 					{src: this.albumArt, sizes: '192x192', type: 'image/png'},
@@ -450,14 +531,14 @@ class Media {
 		elements.song.onclick       = () => {
 			MusicPlayer.currentSongIndex = this.id;
 			MusicPlayer.onChange();
-			$('#playlist').classList.remove('show');
+			$('#play-list').classList.remove('show');
 		};
 		elements.title.innerHTML    = this.title;
 		elements.artist.innerHTML   = this.artist + '-' + this.album;
 		elements.duration.innerHTML = this.duration;
 
 		elements.albumArt.style.backgroundImage = 'url(' + this.albumArt + ')';
-		$('#playlist').appendChild(songElement);
+		$('#play-list').appendChild(songElement);
 		return elements;
 	}
 }

@@ -8,6 +8,14 @@ html, body {
     font-family: 'Raleway', sans-serif;
 }
 
+input {
+    outline: none;
+    border: none;
+    margin: 0;
+    padding: 0;
+
+}
+
 #input-file {
     font-size: 18px;
     position: absolute;
@@ -32,7 +40,6 @@ html, body {
     align-items: center;
     padding: 4px;
 }
-
 
 .container {
     width: 100%;
@@ -127,7 +134,9 @@ html, body {
     box-shadow: inset 0 0 0 64px #ffffff44;
 }
 
-.btn.on, #playlist.show + .navigator #list, #menulist.show + #menu {
+.btn.on, #play-list.show + .navigator #list,
+#menu-list.show + #menu,
+#search-list.show + * + .navigator #search {
     text-shadow: 0 0 4px currentColor;
     color: #ffffff;
 }
@@ -263,13 +272,12 @@ html, body {
     margin: 2px 2px 2px -2px;
 }
 
-#menulist {
+#menu-list {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
     background: #111111;
-    /* display: none; */
     display: flex;
     visibility: hidden;
     opacity: 0;
@@ -283,8 +291,7 @@ html, body {
     transition: 250ms all ease-in-out;
 }
 
-#menulist.show {
-    /* display: flex; */
+#menu-list.show {
     height: auto;
     visibility: visible;
     opacity: 1;
@@ -306,7 +313,7 @@ html, body {
     border-radius: 8px;
 }
 
-#menulist > * {
+#menu-list > * {
     padding: 16px 18px;
     height: 12px;
     width: auto;
@@ -319,7 +326,7 @@ html, body {
     cursor: pointer;
 }
 
-#menulist > *:nth-child(n+2):hover {
+#menu-list > *:nth-child(n+2):hover {
     background: #fff3;
 }
 
@@ -332,14 +339,13 @@ html, body {
     justify-content: center;
 }
 
-
-#menulist > * .btn {
+#menu-list > * .btn {
     font-size: 24px;
     justify-content: flex-start;
     margin-right: 8px;
 }
 
-#playlist {
+:is(#play-list, #search-list) {
     position: absolute;
     top: 0;
     left: 0;
@@ -360,24 +366,24 @@ html, body {
     padding-bottom: 64px;
 }
 
-#playlist:hover {
+:is(#play-list, #search-list #result):hover {
     overflow: auto;
 }
 
 /*noinspection ALL*/
 @supports (overflow: overlay) {
-    #playlist:hover {
+    :is(#play-list, #search-list #result):hover {
         overflow: overlay;
     }
 }
 
-#playlist.show {
+:is(#play-list, #search-list).show {
     opacity: 1;
     visibility: visible;
     transform: none;
 }
 
-#playlist .song {
+:is(#play-list, #search-list) .song {
     flex: none;
     width: 100%;
     height: 112px;
@@ -391,24 +397,24 @@ html, body {
     transition: 150ms all linear 75ms;
 }
 
-#playlist .song:hover {
+:is(#play-list, #search-list) .song:hover {
     box-shadow: 0 0 50px 64px inset #FFFFFF22;
     border-radius: 8px;
 }
 
-#playlist .song:active {
+:is(#play-list, #search-list) .song:active {
     box-shadow: 0 0 50px 64px inset #aaaaaa55;
     border-radius: 16px;
 }
 
-#playlist .albumArt {
+:is(#play-list, #search-list) .albumArt {
     position: unset;
     width: 96px;
     height: 96px;
     margin: 8px;
 }
 
-#playlist .trackLabels {
+:is(#play-list, #search-list) .trackLabels {
     position: unset;
     display: flex;
     justify-content: center;
@@ -421,15 +427,15 @@ html, body {
     max-width: 60%;
 }
 
-#playlist .trackLabels > div {
+:is(#play-list, #search-list) .trackLabels > div {
     background: none;
 }
 
-#playlist .trackLabels > :nth-last-child(1) {
+:is(#play-list, #search-list) .trackLabels > :nth-last-child(1) {
 }
 
 
-.artist, .more, .favorite {
+.more, .favorite {
     display: none !important;
 }
 
@@ -445,10 +451,61 @@ html, body {
     border-radius: 16px;
 }
 
-#playlist:before {
+#play-list:before {
     content: 'All Songs';
     font-size: 36px;
     margin: 32px;
+}
+
+#search-list label {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: stretch;
+    margin: 8px;
+    background: #111111;
+    border-radius: 6px;
+    overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99;
+}
+
+#search-list label :is(.btn, input) {
+    background: none;
+    font-size: 16px;
+    color: #ffffff;
+}
+#search-list label .btn {
+    font-size: 22px;
+    z-index: 9;
+}
+
+#search-list label input {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 0 48px;
+}
+#search-list #result{
+    padding-top: 48px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow: hidden;
+}
+
+#search-list #result.empty{
+    align-items: center;
+    justify-content: center;
 }
 
 /*
