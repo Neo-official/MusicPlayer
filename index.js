@@ -163,7 +163,7 @@ class MusicPlayer {
 		audio.onpause      = () => this.onpause();
 		audio.onended      = () => this.onended();
 
-		let playList = $('#play-list')
+		let playList = $('#play-list');
 
 		$('.next').onclick     = () => this.next();
 		$('.forward').onclick  = () => this.seekforward(10);
@@ -180,11 +180,11 @@ class MusicPlayer {
 		searchInput.onkeyup  = () => this.search(searchInput.value);
 
 		/*playList.onscroll = ()=>{
-			let elements = [...document.querySelectorAll('#play-list .song')].filter(song=>/!*playList.scrollTop < song.offsetTop&&*!/(playList.scrollTop+playList.scrollHeight) > song.offsetTop)
+		 let elements = [...document.querySelectorAll('#play-list .song')].filter(song=>/!*playList.scrollTop < song.offsetTop&&*!/(playList.scrollTop+playList.scrollHeight) > song.offsetTop)
 
-			console.log('scrolled', elements);
-		}
-*/
+		 console.log('scrolled', elements);
+		 }
+		 */
 		let seekBar         = $('#seekbar');
 		seekBar.min         = 0;
 		seekBar.max         = 100;
@@ -451,9 +451,9 @@ class MusicPlayer {
 
 		if ('mediaSession' in navigator) {
 			navigator.mediaSession.setPositionState({
-				duration: audio.duration || 0,
+				duration    : audio.duration || 0,
 				playbackRate: audio.playbackRate,
-				position: audio.currentTime || 0
+				position    : audio.currentTime || 0
 			});
 		}
 	}
