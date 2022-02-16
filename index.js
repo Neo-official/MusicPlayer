@@ -155,7 +155,7 @@ function imageDataToBase64 (data = []) {
 }
 
 function imageDataToBlob (data) {
-  return data == null ? DEFAULT_BLOB : new Blob([data], {type: 'image/png'});
+  return data == null ? DEFAULT_BLOB : new Blob([...data], {type: 'image/png'});
 }
 
 function blobToUrl (blob) {
