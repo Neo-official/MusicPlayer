@@ -1,0 +1,7 @@
+{
+  "name": "MusicPlayer",
+  "version": "1.0.0",
+  "devDependencies": {
+    "music-metadata-browser": "^2.5.0"
+  }
+}
