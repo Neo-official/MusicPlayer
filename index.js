@@ -153,12 +153,13 @@ function imageDataToBase64 (data = []) {
   data = window.btoa(data);
   return data ? 'data:image/png;base64,' + data : DEFAULT_IMAGE;
 }
-function dataURItoBlob(dataURI) {
+
+function dataURItoBlob (dataURI) {
   // convert base64 to raw binary data held in a string
   // doesn't handle URLEncoded DataURIs - see SO answer #6850276 for code that does this
   var byteString = atob(dataURI.split(',')[1]);
   // separate out the mime component
-  var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
+  var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
 
   // write the bytes of the string to an ArrayBuffer
   var ab = new ArrayBuffer(byteString.length);
@@ -175,6 +176,7 @@ function dataURItoBlob(dataURI) {
   return new Blob([ab], {type: mimeString});
 
 }
+
 function imageDataToBlob (data) {
   return data == null ? DEFAULT_BLOB : dataURItoBlob(imageDataToBase64(data));
 }
@@ -220,12 +222,19 @@ class MusicPlayer {
 	$('#search').onclick = () => $('#search-list').classList.toggle('show');
 	searchInput.onkeyup  = () => this.search(searchInput.value);
 
-	playList.onscroll   = () => {
-	  let elements = [...document.querySelectorAll('#play-list .song')].filter(song => (playList.scrollTop - 42) < song.offsetTop && !((playList.scrollTop - 42 + playList.parentElement.scrollHeight) < song.offsetTop));
+	playList.onscroll   = (event) => {
+	  event.preventDefault();
+	  let padding = 128
+	  let songs    = [...document.querySelectorAll('#play-list .song')];
+	  let elements = songs.filter(song => (playList.scrollTop - padding) < song.offsetTop && !((playList.scrollTop + padding + playList.parentElement.scrollHeight) < song.offsetTop));
 	  for (const song of elements) {
 		song.onscrolled();
 	  }
-	  console.log('scrolled', elements);
+	  elements = songs.filter(song => !elements.includes(song));
+	  for (const song of elements) {
+		song.onunscrolled();
+	  }
+	  // console.log('scrolled', elements);
 	};
 	let seekBar         = $('#seekbar');
 	seekBar.min         = 0;
@@ -238,13 +247,14 @@ class MusicPlayer {
   }
 
   static addFiles (files) {
+	let i = 0;
 	for (const file of files) {
-	  this.addFile(file);
+	  this.addFile(file, i++);
 	  // console.log('... file: ', file);
 	}
   }
 
-  static addFile (file) {
+  static addFile (file, i) {
 	// check file type as audio/*
 	if (!file.type.includes('audio'))
 	  return;
@@ -297,7 +307,7 @@ class MusicPlayer {
 			console.log(':(', error.type, error.info);
 		  }
 		});
-	}, 10);
+	}, 10 * i);
   }
 
   static isListEmpty () {
@@ -586,6 +596,7 @@ class Media {
 
   initialize () {
 	let songElement = $('.song').cloneNode(true);
+	let playList    = $('#play-list');
 	let elements    = {
 	  song    : songElement,
 	  title   : songElement.querySelector('.title'),
@@ -594,27 +605,29 @@ class Media {
 	  albumArt: songElement.querySelector('.albumArt')
 	};
 
-	elements.song.onclick    = () => {
+	playList.appendChild(songElement);
+
+	elements.song.onclick      = () => {
 	  MusicPlayer.currentSongIndex = this.id;
 	  MusicPlayer.onChange();
 	  $('#play-list').classList.remove('show');
 	  $('#search-list').classList.remove('show');
 	  MusicPlayer.play();
 	};
-	elements.song.onscrolled = () => {
+	elements.song.onscrolled   = () => {
 	  elements.albumArt.style.backgroundImage = 'url(' + this.albumArt + ')';
+	};
+	elements.song.onunscrolled = () => {
+	  elements.albumArt.style.backgroundImage = "none";
 	};
 
 	elements.title.innerHTML    = this.title;
 	elements.artist.innerHTML   = this.artist + '-' + this.album;
 	elements.duration.innerHTML = this.duration;
 
-	let playList = $('#play-list');
-
-	if (playList.offsetTop <= elements.song.offsetTop)
+	if (elements.song.offsetTop <= playList.offsetHeight)
 	  elements.song.onscrolled();
 
-	playList.appendChild(songElement);
 	return elements;
   }
 }
