@@ -1,4 +1,3 @@
-
 html, body {
     margin: 0;
     padding: 0;
@@ -8,6 +7,7 @@ html, body {
     height: 100vh;
     font-family: 'Raleway', sans-serif;
     -webkit-font-smoothing: subpixel-antialiased;
+    overflow: hidden;
 }
 
 input {
@@ -27,11 +27,12 @@ input {
     position: relative;
     top: 50%;
     left: 50%;
-    max-width: 320px;
+    max-width: 340px;
     min-width: 250px;
-    max-height: 800px;
+    max-height: 640px;
     min-height: 580px;
-    /* height: 580px; */
+    width: 100%;
+    height: 100%;
     transform: translate(-50%, -50%);
     background: #000;
     color: #fff;
@@ -43,6 +44,15 @@ input {
     justify-content: center;
     align-items: center;
     padding: 4px;
+}
+
+@media only screen and (max-width: 380px) {
+    .music {
+        max-width: none;
+        max-height: none;
+        border: none;
+        border-radius: 0;
+    }
 }
 
 .container {
@@ -63,7 +73,7 @@ input {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #aaaaaaaa no-repeat center;
+    background: no-repeat center;
     /* background-size: cover; */
     /* width: 100%; */
     /* height: 100%; */
@@ -71,12 +81,21 @@ input {
     margin: 8px;
     transition: 150ms all linear 25ms;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1/1;
+}
+
+.albumArt:empty{
+    background-color: #aaaaaaaa;
 }
 
 .albumArt.cover {
     z-index: -1;
     filter: blur(8px) contrast(1.1) brightness(0.75);
     /* background-size: 125%; */
+    aspect-ratio: auto;
 }
 
 img {
@@ -91,6 +110,7 @@ img {
     max-width: 100%;
     max-height: 100%;
     backdrop-filter: blur(4px);
+    border-radius: 8px;
 }
 
 .albumArt.cover img {
@@ -161,9 +181,7 @@ img {
     box-shadow: inset 0 0 0 64px #ffffff44;
 }
 
-.btn.on, #play-list.show + .navigator #list,
-#menu-list.show + #menu,
-#search-list.show + * + .navigator #search {
+.btn.on, #play-list.show + .navigator #list, #menu-list.show + #menu, #search-list.show + * + .navigator #search {
     text-shadow: 0 0 4px currentColor;
     color: #ffffff;
 }
@@ -465,7 +483,6 @@ img {
 
 :is(#play-list, #search-list) .trackLabels > :nth-last-child(1) {
 }
-
 
 .more, .favorite {
     display: none !important;

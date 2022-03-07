@@ -1,4 +1,6 @@
 // import * as mmd from 'music-metadata-browser'
+// noinspection JSUnresolvedFunction,JSUnresolvedVariable
+
 let DEFAULT_IMAGE = './img/0.png';
 let DEFAULT_BLOB;
 let $             = id => document.querySelector(id);
@@ -157,18 +159,18 @@ function imageDataToBase64 (data = []) {
 function dataURItoBlob (dataURI) {
   // convert base64 to raw binary data held in a string
   // doesn't handle URLEncoded DataURIs - see SO answer #6850276 for code that does this
-  var byteString = atob(dataURI.split(',')[1]);
+  const byteString = atob(dataURI.split(',')[1]);
   // separate out the mime component
-  var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+  const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
 
   // write the bytes of the string to an ArrayBuffer
-  var ab = new ArrayBuffer(byteString.length);
+  const ab = new ArrayBuffer(byteString.length);
 
   // create a view into the buffer
-  var ia = new Uint8Array(ab);
+  const ia = new Uint8Array(ab);
 
   // set the bytes of the buffer to the correct values
-  for (var i = 0; i < byteString.length; i++) {
+  for (let i = 0; i < byteString.length; i++) {
 	ia[i] = byteString.charCodeAt(i);
   }
 
@@ -252,10 +254,10 @@ class MusicPlayer {
 	let {audio, songs, queue} = this;
 
 	const loadNextFile = () => {
-	  if (files.length)
-		return main();
+	  if (!files.length)
+		this.sort((a, b) => songs[b].file.lastModified - songs[a].file.lastModified);
 
-	  this.sort((a, b) => songs[b].file.lastModified - songs[a].file.lastModified);
+	  main().then(r => r);
 	};
 
 	const createSong = props => {
@@ -397,7 +399,8 @@ class MusicPlayer {
   }
 
   static play () {
-	return this.audio.play();
+	this.audio.play().then(()=>true);
+	return true
   }
 
   static pause () {
@@ -571,16 +574,17 @@ class MusicPlayer {
 	const playList       = $('#play-list');
 	// console.log(queue, songs.map(s=>s.id));
 	queue.sort(callback);
-	const nodes = queue.map(songId => songs[songId].elements.song)
+	const nodes = queue.map(songId => songs[songId].elements.song);
 	// console.log(queue);
 
 	playList.textContent = '';
 	playList.append(...nodes);
 
-	playList.onscroll();
+	playList.onscroll(undefined);
   }
 }
 
+// noinspection JSCheckFunctionSignatures
 class Media {
   constructor ({
 				 id = 0,
@@ -598,6 +602,7 @@ class Media {
 	this.title    = title;
 	this.artist   = artist;
 	this.album    = album;
+	this.image    = image;
 	this.image    = new Image();
 	this.albumArt = albumArt;
 	this.src      = src;
