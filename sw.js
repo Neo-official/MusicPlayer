@@ -7,7 +7,7 @@ var files = [
 	'./css/material-icons.css',
 	'./fonts/material-icons-Round.woff2',
 	'./fonts/Raleway.woff2',
-	'./img/0.png',
+	'./img/0.jpg',
 	'./manifest.json',
 	'./icons/icon-512.png',
 	'./icons/icon-256.png',

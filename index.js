@@ -1,7 +1,7 @@
 // import * as mmd from 'music-metadata-browser'
 // noinspection JSUnresolvedFunction,JSUnresolvedVariable
 
-let DEFAULT_IMAGE = './img/0.png';
+let DEFAULT_IMAGE = './img/0.jpg';
 let DEFAULT_BLOB;
 let $             = id => document.querySelector(id);
 
@@ -593,7 +593,7 @@ class Media {
 				 artist = 'Unknown',
 				 album = 'Unknown',
 				 image = null,
-				 albumArt = './img/0.png',
+				 albumArt = './img/0.jpg',
 				 src = '',
 				 file
 			   }) {
