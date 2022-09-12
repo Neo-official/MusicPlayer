@@ -23,7 +23,6 @@ function initializeDragAndDrop () {
   window.ondragover = event => {
 	event.preventDefault();
 	$('.dropzone').classList.add('show');
-
   };
 
   $('.dropzone').ondragleave = event => {
@@ -130,6 +129,14 @@ function timeToClock (time = 0) {
   return min + ':' + (sec < 10 ? '0' : '') + sec;
 }
 
+function getItem (item) {
+  return JSON.parse(window.localStorage.getItem(item));
+}
+
+function setItem (item, value) {
+  return window.localStorage.setItem(item, JSON.stringify(value));
+}
+
 /*
  function shuffle (array, bool) {
  array = bool ? array : array.slice();
@@ -208,7 +215,8 @@ class MusicPlayer {
 	audio.onpause      = () => this.onpause();
 	audio.onended      = () => this.onended();
 
-	let playList = $('#play-list');
+	const playList   = $('#play-list');
+	const searchList = $('#search-list');
 
 	$('.next').onclick     = () => this.next();
 	$('.forward').onclick  = () => this.seekforward(10);
@@ -221,14 +229,16 @@ class MusicPlayer {
 	$('#list').onclick     = () => playList.classList.toggle('show');
 
 	let searchInput      = $('#search-list #search-input');
-	$('#search').onclick = () => $('#search-list').classList.toggle('show');
+	$('#search').onclick = () => searchList.classList.toggle('show');
 	searchInput.onkeyup  = () => this.search(searchInput.value);
 
-	playList.onscroll   = (event) => {
+	playList.onscroll = (event) => {
+	  if (event === null || event === undefined) return false;
 	  event && event.preventDefault();
+	  const list   = event.target;
 	  let padding  = 128;
-	  let songs    = [...document.querySelectorAll('#play-list .song')];
-	  let elements = songs.filter(song => (playList.scrollTop - padding) < song.offsetTop && !((playList.scrollTop + padding + playList.parentElement.scrollHeight) < song.offsetTop));
+	  let songs    = [...list.querySelectorAll('.song')];
+	  let elements = songs.filter(song => (list.scrollTop - padding) < song.offsetTop && !((list.scrollTop + padding + list.parentElement.scrollHeight) < song.offsetTop));
 	  for (const song of elements) {
 		song.onscrolled();
 	  }
@@ -238,6 +248,7 @@ class MusicPlayer {
 	  }
 	  // console.log('scrolled', elements);
 	};
+
 	let seekBar         = $('#seekbar');
 	seekBar.min         = 0;
 	seekBar.max         = 100;
@@ -253,6 +264,8 @@ class MusicPlayer {
 
 	let {audio, songs, queue} = this;
 
+	const _songs = getItem('songs') || [];
+
 	const loadNextFile = () => {
 	  if (!files.length)
 		this.sort((a, b) => songs[b].file.lastModified - songs[a].file.lastModified);
@@ -261,8 +274,11 @@ class MusicPlayer {
 	};
 
 	const createSong = props => {
-	  if (songs.find(song => song.name === props.name)) {
-		console.warn('this song on the list');
+	  props = {...props, ...(_songs.find(song => song.name === props.name) || {})};
+
+	  const song = songs.find(song => song.name === props.name);
+	  if (song || props.isDeleted) {
+		console.warn(`${song.name} song ${props.isDeleted ? 'deleted :)' : 'already on the list'}`);
 	  }
 	  else {
 		const song = new Media(props);
@@ -318,11 +334,12 @@ class MusicPlayer {
 
   static addFile (file, onSuccess, onError) {
 	// check file type as audio/*
-	if (!file.type.includes('audio'))
+	if (!file || !file.type.includes('audio'))
 	  return;
 
 	// file source doesn't exist, so we give them a source as Blob()
-	file.src = URL.createObjectURL(file);
+	if (!file.src)
+	  file.src = URL.createObjectURL(file);
 
 	new jsmediatags.Reader(file)
 	  .setTagsToRead(["title", "artist", "album", "picture"])
@@ -399,8 +416,8 @@ class MusicPlayer {
   }
 
   static play () {
-	this.audio.play().then(()=>true);
-	return true
+	this.audio.play().then(() => true);
+	return true;
   }
 
   static pause () {
@@ -413,7 +430,7 @@ class MusicPlayer {
   }
 
   static togglePlayPause () {
-	if (this.isListEmpty()) return;
+	if (this.isListEmpty()) return $('#input-file').click();
 	if (this.paused)
 	  this.play();
 	else this.pause();
@@ -550,14 +567,16 @@ class MusicPlayer {
 			song.album.trim().toLowerCase().includes(value)
 		  );
 
-	let searchList = $('#search-list #result');
+	let searchList = $('#result');
 
 	searchList.textContent = '';
 	if (result.length) {
 	  searchList.classList.remove('empty');
 
-	  for (const {elements: {song}} of result)
-		searchList.appendChild(song);
+	  for (const song of result) {
+		song.elements.song.onscrolled();
+		searchList.appendChild(song.elements.song.cloneNode(true));
+	  }
 
 	  return true;
 	}
@@ -593,21 +612,25 @@ class Media {
 				 artist = 'Unknown',
 				 album = 'Unknown',
 				 image = null,
-				 albumArt = './img/0.jpg',
+				 albumArt = DEFAULT_IMAGE,
 				 src = '',
-				 file
+				 file,
+				 isDeleted = false
 			   }) {
-	this.id       = id;
-	this.name     = name;
-	this.title    = title;
-	this.artist   = artist;
-	this.album    = album;
-	this.image    = image;
-	this.image    = new Image();
-	this.albumArt = albumArt;
-	this.src      = src;
-	this.file     = file;
-	this.duration = 0;
+	this.id         = id;
+	this.name       = name;
+	this.title      = title;
+	this.artist     = artist;
+	this.album      = album;
+	this.image      = image;
+	this.image      = new Image();
+	this.albumArt   = albumArt;
+	this.src        = src;
+	this.file       = file;
+	this.isDeleted  = isDeleted;
+	this.duration   = 0;
+	const audio     = new Audio(src);
+	audio.oncanplay = () => this.time = timeToClock(audio.duration || 0);
 
 	this.elements = this.initialize();
 
@@ -633,6 +656,48 @@ class Media {
 
 	this.duration = value;
 	return this.duration;
+  }
+
+  toJSON () {
+	const {id, name, title, album, artist, albumArt, duration, isDeleted} = this;
+	return {
+	  id,
+	  name,
+	  title,
+	  album,
+	  artist,
+	  albumArt,
+	  duration,
+	  isDeleted
+	};
+  }
+
+  removeImage () {
+	console.log(`(${this.name}) song Image removed`);
+	this.albumArt = DEFAULT_IMAGE;
+	return this.save();
+  }
+
+  remove () {
+	console.log(`(${this.name}) song removed`);
+	this.isDeleted = true;
+	return this.save();
+  }
+
+  save () {
+	console.log(`(${this.name}) song saved`);
+	const songs = getItem('songs') || [];
+	const song  = songs.find(s => s.name === this.name);
+	// song = {...song, ...this};
+	if (song) {
+	  for (const key in song)
+		if (song.hasOwnProperty(key))
+		  song[key] = this[key];
+	}
+	else songs.push(this);
+
+	setItem('songs', songs);
+	return this;
   }
 
   initialize () {
