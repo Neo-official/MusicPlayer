@@ -278,7 +278,7 @@ class MusicPlayer {
 
 	  const song = songs.find(song => song.name === props.name);
 	  if (song || props.isDeleted) {
-		console.warn(`${song.name} song ${props.isDeleted ? 'deleted :)' : 'already on the list'}`);
+		console.warn(`${props.name} song ${props.isDeleted ? 'deleted :)' : 'already on the list'}`);
 	  }
 	  else {
 		const song = new Media(props);
